@@ -3,6 +3,8 @@ cmake_minimum_required(VERSION 3.15)
 set(CMAKE_TOOLCHAIN_FILE ${CMAKE_SOURCE_DIR}/cmake/toolchain_gcc.cmake)
 
 if (CMAKE_BUILD_TYPE MATCHES Test)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -m32")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -m32")
     include(cmake/fetch_googletest.cmake)
     enable_testing()
 endif()

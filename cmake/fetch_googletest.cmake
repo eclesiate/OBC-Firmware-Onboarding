@@ -12,6 +12,8 @@ FetchContent_Declare(
     GIT_PROGRESS    TRUE
     USES_TERMINAL_DOWNLOAD TRUE
 )
+
+set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
 add_library(GTest::GTest INTERFACE IMPORTED)
 target_link_libraries(GTest::GTest INTERFACE gtest_main)
