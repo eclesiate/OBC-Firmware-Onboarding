@@ -9,6 +9,7 @@
 
 /* LM75BD Registers (p.8) */
 #define LM75BD_REG_CONF 0x01U  /* Configuration Register (R/W) */
+#define LM75BD_POINTER_TEMP_REG 0x00U // Section 7.3 of datasheet
 
 error_code_t lm75bdInit(lm75bd_config_t *config) {
   error_code_t errCode;
@@ -27,6 +28,21 @@ error_code_t lm75bdInit(lm75bd_config_t *config) {
 
 error_code_t readTempLM75BD(uint8_t devAddr, float *temp) {
   /* Implement this driver function */
+  if (!temp) return ERR_CODE_INVALID_ARG;
+  
+  uint8_t ptrReg = LM75BD_POINTER_TEMP_REG;
+
+  error_code_t errCode;
+  RETURN_IF_ERROR_CODE(i2cSendTo(devAddr, &ptrReg, sizeof(ptrReg)));
+
+  uint8_t recvBuf[2] = {0};
+  RETURN_IF_ERROR_CODE(i2cReceiveFrom(devAddr, &recvBuf[0], sizeof(recvBuf)));
+
+  // Convert recvBuf to celsius
+  uint16_t rawTemperature = (((uint16_t)recvBuf[0] << 8) | (uint16_t)recvBuf[1]);
+  int16_t signedTemp = (int16_t)rawTemperature; 
+  signedTemp >>= 5; // once the sign is properly casted from the uint, right shift, if you right shifted first then casted, the cast will always see the padded 0 and assume positive
+  *temp = (float)signedTemp * 0.125f;
   
   return ERR_CODE_SUCCESS;
 }

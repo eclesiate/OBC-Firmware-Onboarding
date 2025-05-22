@@ -2,6 +2,7 @@
 #include "errors.h"
 #include "lm75bd.h"
 #include "console.h"
+#include "logging.h"
 
 #include <FreeRTOS.h>
 #include <os_task.h>
@@ -43,19 +44,50 @@ void initThermalSystemManager(lm75bd_config_t *config) {
 
 error_code_t thermalMgrSendEvent(thermal_mgr_event_t *event) {
   /* Send an event to the thermal manager queue */
+  if (!event) return ERR_CODE_INVALID_ARG;
+  if (!thermalMgrQueueHandle) return ERR_CODE_INVALID_STATE;
 
-  return ERR_CODE_SUCCESS;
+  if (xQueueSend(thermalMgrQueueHandle, event, 0) == pdPASS) {
+    return ERR_CODE_SUCCESS;
+  }
+  return ERR_CODE_QUEUE_FULL;
 }
 
 void osHandlerLM75BD(void) {
   /* Implement this function */
+  thermal_mgr_event_t osInterrupt = {.type = THERMAL_MGR_EVENT_INTERRUPT_OS};
+  thermalMgrSendEvent(&osInterrupt);
+ 
 }
 
 static void thermalMgr(void *pvParameters) {
   /* Implement this task */
+
+  lm75bd_config_t* data = (lm75bd_config_t*) pvParameters;
+  
+  thermal_mgr_event_t event;
+  float *temp;
+  error_code_t errCode;
   while (1) {
-    
+    if (xQueueReceive(thermalMgrQueueHandle, &event, 0) == pdPASS) { 
+        if(event.type == THERMAL_MGR_EVENT_MEASURE_TEMP_CMD) {  
+            LOG_IF_ERROR_CODE(readTempLM75BD(data->devAddr, temp));
+            if (errCode == ERR_CODE_SUCCESS) {
+                addTemperatureTelemetry(*temp);
+            }
+        } else if (event.type = THERMAL_MGR_EVENT_INTERRUPT_OS) {
+            LOG_IF_ERROR_CODE(readTempLM75BD(data->devAddr, temp));
+            if (errCode == ERR_CODE_SUCCESS) {
+                if(*temp >=  data->overTempThresholdCelsius ) { // 80.0f
+                    overTemperatureDetected();
+                } else if (*temp <= data->hysteresisThresholdCelsius) { // 75.0f
+                    safeOperatingConditions();
+                }
+            }
+        } 
+    } 
   }
+
 }
 
 void addTemperatureTelemetry(float tempC) {
