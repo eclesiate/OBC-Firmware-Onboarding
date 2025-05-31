@@ -69,7 +69,7 @@ static void thermalMgr(void *pvParameters) {
   float *temp;
   error_code_t errCode;
   while (1) {
-    if (xQueueReceive(thermalMgrQueueHandle, &event, 0) == pdPASS) { 
+    if (xQueueReceive(thermalMgrQueueHandle, &event, portMAX_DELAY) == pdPASS) { 
         if(event.type == THERMAL_MGR_EVENT_MEASURE_TEMP_CMD) {  
             LOG_IF_ERROR_CODE(readTempLM75BD(data->devAddr, temp));
             if (errCode == ERR_CODE_SUCCESS) {
